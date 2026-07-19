@@ -4,9 +4,6 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![Go Report Card](https://goreportcard.com/badge/github.com/jacky-htg/pendem)](https://goreportcard.com/report/github.com/jacky-htg/pendem)
-[![Build Status](https://github.com/jacky-htg/pendem/actions/workflows/go.yml/badge.svg)](https://github.com/jacky-htg/pendem/actions)
-[![Coverage Status](https://coveralls.io/repos/github/jacky-htg/pendem/badge.svg)](https://coveralls.io/github/jacky-htg/pendem)
 
 **Pendem** adalah Redis-like cache server yang dibangun dari awal menggunakan Go. Nama "Pendem" berasal dari bahasa Jawa yang berarti **"menyimpan di dalam tanah"** - mencerminkan filosofi penyimpanan data yang kokoh dan aman, siap diambil dengan cepat.
 
@@ -270,4 +267,4 @@ This project is licensed under the GNU GPL License - see the [LICENSE](LICENSE) 
 
 🏺 Pendem - Cache Server yang Kokoh Seperti Tanah
 
-[Report Bug](https://github.com/jacky-htg/pendem/issues) · [Request Feature](https://github.com/jacky-htg/pendem/issues) · Documentation
+[Report Bug](https://github.com/jacky-htg/pendem/issues) · [Request Feature](https://github.com/jacky-htg/pendem/issues)
