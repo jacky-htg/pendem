@@ -214,3 +214,69 @@ func (h *Handler[V]) HExists(args []string) server.RESPValue {
 		Int:  0,
 	}
 }
+
+// HKEYS key
+func (h *Handler[V]) HKeys(args []string) server.RESPValue {
+	if len(args) < 1 {
+		return server.RESPValue{
+			Type: server.Error,
+			Str:  "ERR wrong number of arguments for 'hkeys' command",
+		}
+	}
+
+	key := args[0]
+	hash, exists := h.cache.GetHash(key)
+	if !exists {
+		return server.RESPValue{
+			Type:  server.Array,
+			Array: []server.RESPValue{},
+		}
+	}
+
+	keys := hash.Keys()
+	result := make([]server.RESPValue, len(keys))
+	for i, k := range keys {
+		result[i] = server.RESPValue{
+			Type: server.BulkString,
+			Str:  k,
+		}
+	}
+
+	return server.RESPValue{
+		Type:  server.Array,
+		Array: result,
+	}
+}
+
+// HVALS key
+func (h *Handler[V]) HVals(args []string) server.RESPValue {
+	if len(args) < 1 {
+		return server.RESPValue{
+			Type: server.Error,
+			Str:  "ERR wrong number of arguments for 'hvals' command",
+		}
+	}
+
+	key := args[0]
+	hash, exists := h.cache.GetHash(key)
+	if !exists {
+		return server.RESPValue{
+			Type:  server.Array,
+			Array: []server.RESPValue{},
+		}
+	}
+
+	values := hash.Values()
+	result := make([]server.RESPValue, len(values))
+	for i, v := range values {
+		result[i] = server.RESPValue{
+			Type: server.BulkString,
+			Str:  v,
+		}
+	}
+
+	return server.RESPValue{
+		Type:  server.Array,
+		Array: result,
+	}
+}

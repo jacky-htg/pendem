@@ -97,6 +97,8 @@ func main() {
 	srv.RegisterHandler("HDEL", h.HDel)
 	srv.RegisterHandler("HLEN", h.HLen)
 	srv.RegisterHandler("HEXISTS", h.HExists)
+	srv.RegisterHandler("HKEYS", h.HKeys)
+	srv.RegisterHandler("HVALS", h.HVals)
 
 	// List commands
 	srv.RegisterHandler("LPUSH", h.LPush)
