@@ -7,6 +7,7 @@ import (
 
 // ServerConfig berisi konfigurasi server
 type ServerConfig struct {
+	Port           string
 	MaxConnections int // Maksimum koneksi simultan
 	ReadTimeout    time.Duration
 	WriteTimeout   time.Duration
@@ -57,6 +58,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		Server: ServerConfig{
+			Port:           "6379",
 			MaxConnections: 1_0000,
 			ReadTimeout:    2 * time.Minute,
 			WriteTimeout:   30 * time.Second,
@@ -101,6 +103,9 @@ func LoadConfig(path string) (Config, error) {
 	cfg := DefaultConfig()
 
 	// [server] section
+	if v, ok := parser.GetString("server", "port"); ok {
+		cfg.Server.Port = v
+	}
 	if v, ok := parser.GetInt("server", "max_connections"); ok {
 		cfg.Server.MaxConnections = v
 	}
@@ -118,19 +123,15 @@ func LoadConfig(path string) (Config, error) {
 	if v, ok := parser.GetBytes("engine", "max_memory"); ok {
 		cfg.Engine.MaxMemory = v
 	}
-
 	if v, ok := parser.GetString("engine", "eviction_policy"); ok {
 		cfg.Engine.EvictionPolicy = v
 	}
-
 	if v, ok := parser.GetInt("engine", "evictor_capacity"); ok {
 		cfg.Engine.EvictorCapacity = v
 	}
-
 	if v, ok := parser.GetInt("engine", "shard_count"); ok {
 		cfg.Engine.ShardCount = v
 	}
-
 	if v, ok := parser.GetDuration("engine", "default_ttl"); ok {
 		cfg.Engine.DefaultTTL = v
 	}
@@ -139,11 +140,9 @@ func LoadConfig(path string) (Config, error) {
 	if v, ok := parser.GetBool("persistence.rdb", "enabled"); ok {
 		cfg.Persistence.RDB.Enabled = v
 	}
-
 	if v, ok := parser.GetString("persistence.rdb", "path"); ok {
 		cfg.Persistence.RDB.Path = v
 	}
-
 	if v, ok := parser.GetDuration("persistence.rdb", "interval"); ok {
 		cfg.Persistence.RDB.Interval = v
 	}
@@ -151,15 +150,12 @@ func LoadConfig(path string) (Config, error) {
 	if v, ok := parser.GetBool("persistence.aof", "enabled"); ok {
 		cfg.Persistence.AOF.Enabled = v
 	}
-
 	if v, ok := parser.GetString("persistence.aof", "path"); ok {
 		cfg.Persistence.AOF.FilePath = v
 	}
-
 	if v, ok := parser.GetDuration("persistence.aof", "flush_interval"); ok {
 		cfg.Persistence.AOF.FlushInterval = v
 	}
-
 	if v, ok := parser.GetBool("persistence.aof", "sync_on_write"); ok {
 		cfg.Persistence.AOF.SyncOnWrite = v
 	}
@@ -167,15 +163,12 @@ func LoadConfig(path string) (Config, error) {
 	if v, ok := parser.GetBool("persistence.json", "enabled"); ok {
 		cfg.Persistence.JSON.Enabled = v
 	}
-
 	if v, ok := parser.GetString("persistence.json", "path"); ok {
 		cfg.Persistence.JSON.Path = v
 	}
-
 	if v, ok := parser.GetDuration("persistence.json", "interval"); ok {
 		cfg.Persistence.JSON.Interval = v
 	}
-
 	if v, ok := parser.GetInt("persistence.json", "max_snapshots"); ok {
 		cfg.Persistence.JSON.MaxSnapshots = v
 	}

@@ -58,7 +58,7 @@ func main() {
 	fmt.Println("║                     P E N D E M                       ║")
 	fmt.Println("║              Simple Cache Server in Go                ║")
 	fmt.Println("╠═══════════════════════════════════════════════════════╣")
-	fmt.Printf("║  Address			: %-22s║\n", "0.0.0.0:6378")
+	fmt.Printf("║  Address			: %-22s║\n", "0.0.0.0:"+cfg.Server.Port)
 	fmt.Printf("║  Max Connection		: %-22d║\n", cfg.Server.MaxConnections)
 	fmt.Printf("║  Read Timeout			: %-22s║\n", cfg.Server.ReadTimeout)
 	fmt.Printf("║  Write Timeout		: %-22s║\n", cfg.Server.WriteTimeout)
@@ -74,7 +74,7 @@ func main() {
 	}
 	defer persistence.Stop()
 
-	srv := server.NewServerWithConfig(":6378", log, cfg.Server)
+	srv := server.NewServerWithConfig(":"+cfg.Server.Port, log, cfg.Server)
 	h := handler.NewHandler(srv, cache, persistence)
 	srv.RegisterHandler("PING", h.Ping)
 	srv.RegisterHandler("MEMORY", h.Memory)
