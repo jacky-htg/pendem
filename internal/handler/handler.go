@@ -125,6 +125,27 @@ func (h *Handler[V]) Get(args []string) server.RESPValue {
 	}
 }
 
+func (h *Handler[V]) Exists(args []string) server.RESPValue {
+	if len(args) < 1 {
+		return server.RESPValue{
+			Type: server.Error,
+			Str:  "ERR wrong number of arguments for 'get' command",
+		}
+	}
+
+	count := 0
+	for _, key := range args {
+		if h.cache.IsExist(key) {
+			count++
+		}
+	}
+
+	return server.RESPValue{
+		Type: server.Integer,
+		Int:  int64(count),
+	}
+}
+
 func (h *Handler[V]) Set(args []string) server.RESPValue {
 	if len(args) < 2 {
 		return server.RESPValue{

@@ -79,6 +79,7 @@ func main() {
 	srv.RegisterHandler("PING", h.Ping)
 	srv.RegisterHandler("MEMORY", h.Memory)
 	srv.RegisterHandler("GET", h.Get)
+	srv.RegisterHandler("EXISTS", h.Exists)
 	srv.RegisterHandler("SET", h.Set)
 	srv.RegisterHandler("DEL", h.Delete)
 	srv.RegisterHandler("TTL", h.TTL)

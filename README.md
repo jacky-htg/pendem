@@ -159,45 +159,81 @@ Shard 3:  6,242 (6.24%)  ████████░░░░░░░░
 
 ## 🔧 Configuration
 
-### Server Config
+### Default Config
 
 ```go
-
-type ServerConfig struct {
-    MaxConnections int           // Maximum simultaneous connections (default: 10000)
-    ReadTimeout    time.Duration // Read timeout (default: 30s)
-    WriteTimeout   time.Duration // Write timeout (default: 30s)
-    IdleTimeout    time.Duration // Idle connection timeout (default: 60s)
-}
-
-type EngineConfig struct {
-    MaxMemory       int64  // Max memory in bytes (default: 1GB)
-    EvictionPolicy  string // "lru", "lfu", "ttl" (default: "lru")
-    EvictorCapacity int    // Max items per shard (default: 10000)
-    ShardCount      int    // Number of shards (default: 16)
-    DefaultTTL      time.Duration // Default TTL for keys (default: 0 = no TTL)
+func DefaultConfig() Config {
+	return Config{
+		Server: ServerConfig{
+			Port:           "6379",
+			MaxConnections: 1_0000,
+			ReadTimeout:    2 * time.Minute,
+			WriteTimeout:   30 * time.Second,
+			IdleTimeout:    10 * time.Minute,
+		},
+		Engine: EngineConfig{
+			MaxMemory:       1024 * 1024 * 1024, // 1GB
+			EvictionPolicy:  "lru",
+			EvictorCapacity: 10_000,
+			ShardCount:      16,
+			DefaultTTL:      0, // No default TTL
+		},
+		Persistence: PersistenceConfig{
+			JSON: JSONConfig{
+				Enabled:      true,
+				Path:         "pendem.snapshot.json",
+				Interval:     1 * time.Hour,
+				MaxSnapshots: 5,
+			},
+			RDB: RDBConfig{
+				Enabled:  true,
+				Path:     "pendem.rdb",
+				Interval: 1 * time.Hour,
+			},
+			AOF: AOFConfig{
+				Enabled:       true,
+				FilePath:      "pendem.aof",
+				FlushInterval: 5 * time.Minute, // 5 menit
+				SyncOnWrite:   false,
+			},
+		},
+	}
 }
 ```
 
 ### Example Custom Config
 
-```go
+```ini
+[server]
+port = 6378
+max_connections = 50000
+read_timeout = 2m
+write_timeout = 30s
+idle_timeout = 5m
 
-config := config.Config{
-    Server: config.ServerConfig{
-        MaxConnections: 50000,
-        ReadTimeout:    30 * time.Second,
-        WriteTimeout:   10 * time.Second,
-        IdleTimeout:    60 * time.Second,
-    },
-    Engine: config.EngineConfig{
-        MaxMemory:       2 * 1024 * 1024 * 1024, // 2GB
-        EvictionPolicy:  "lru",
-        EvictorCapacity: 20000,
-        ShardCount:      32,
-        DefaultTTL:      0,
-    },
-}
+[engine]
+max_memory = 1GB
+eviction_policy = lru
+evictor_capacity = 10000
+shard_count = 16
+default_ttl = 0
+
+[persistence.rdb]
+enabled = true
+path = pendem.rdb
+interval = 1h
+
+[persistence.aof]
+enabled = true
+path = pendem.aof
+flush_interval = 5m
+sync_on_write = false
+
+[persistence.json]
+enabled = false
+path = pendem.snapshot.json
+interval = 1h
+max_snapshots = 5
 ```
 
 ## 📚 Commands
@@ -205,6 +241,7 @@ config := config.Config{
 | Command | Description | Example |
 |---------|-------------|---------|
 | PING | Test connection | PING → PONG |
+| EXISTS | Count Exist by key(s) | EXISTS key1 key2 → 2 |
 | GET | Get value by key | GET key → "value" |
 | SET | Set value with TTL | SET key value EX 10 → OK |
 | DEL | Delete key(s) | DEL key1 key2 → 2 |

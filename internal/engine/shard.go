@@ -45,6 +45,14 @@ func NewShard[V any](cfg config.EngineConfig, logger *log.Logger) *Shard[V] {
 	}
 }
 
+func (s *Shard[V]) IsExist(key string) bool {
+	s.mu.RLock()
+	_, exists := s.evictor.Get(key)
+	s.mu.RUnlock()
+
+	return exists
+}
+
 func (s *Shard[V]) Set(key string, value V, ttl time.Duration) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
