@@ -29,7 +29,7 @@ Perfect for microservices, session management, and high-throughput caching.
 | Sharding | ✅ | 16 shards for parallel operations |
 | TTL Support | ✅ | Time-to-live with EX and PX options |
 | Batch Operations | ⏳ | MGET, MSET, Pipeline (coming soon) |
-| Persistence | ⏳ | RDB & AOF (coming soon) |
+| Persistence | ✅ | RDB & AOF |
 | Pub/Sub | ⏳ | Publish/Subscribe messaging (coming soon) |
 | Clustering | ⏳ | Distributed cache support (coming soon) |
 | Monitoring | ⏳ | Monitor performance, system, cache, connection, etc (coming soon) |
@@ -257,7 +257,7 @@ This project is licensed under the GNU GPL License - see the [LICENSE](LICENSE) 
 - ✅ In-Memory Storage
 - ✅ LRU Eviction
 - ✅ Sharding
-- ⏳ Persistence (RDB & AOF)
+- ✅ Persistence (RDB & AOF)
 - ⏳ Batch Operations (MGET, MSET, Pipeline)
 - ⏳ Pub/Sub
 - ⏳ Cluster Support
