@@ -8,9 +8,13 @@ import (
 )
 
 type Shard[V any] struct {
-	mu      sync.RWMutex
-	policy  string
-	evictor Evictor[V]
+	mu         sync.RWMutex
+	policy     string
+	evictor    Evictor[V]
+	hashes     map[string]*Hash
+	lists      map[string]*List
+	sets       map[string]*Set
+	sortedSets map[string]*SortedSet
 }
 
 func NewShard[V any](cfg config.EngineConfig, logger *log.Logger) *Shard[V] {
@@ -40,8 +44,12 @@ func NewShard[V any](cfg config.EngineConfig, logger *log.Logger) *Shard[V] {
 	}
 
 	return &Shard[V]{
-		policy:  policy,
-		evictor: evictor,
+		policy:     policy,
+		evictor:    evictor,
+		hashes:     make(map[string]*Hash),
+		lists:      make(map[string]*List),
+		sets:       make(map[string]*Set),
+		sortedSets: make(map[string]*SortedSet),
 	}
 }
 
@@ -151,12 +159,11 @@ func (s *Shard[V]) CleanupExpired() {
 	})
 }
 
-// internal/engine/shard.go
 func (s *Shard[V]) GetItems() map[string]Item[V] {
 	s.mu.RLock()
 	items := make(map[string]Item[V], s.evictor.Len())
 
-	// ✅ Iterasi cepat, ambil data
+	// Iterasi cepat, ambil data
 	s.evictor.ForEach(func(key string, item *Item[V]) bool {
 		if !item.IsExpired() {
 			items[key] = *item
@@ -175,4 +182,92 @@ func (s *Shard[V]) Restore(items map[string]Item[V]) {
 	for key, item := range items {
 		s.evictor.Add(key, &item)
 	}
+}
+
+// ============================================
+// HASH METHODS
+// ============================================
+
+func (s *Shard[V]) GetHash(key string) (*Hash, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	h, exists := s.hashes[key]
+	return h, exists
+}
+
+func (s *Shard[V]) GetOrCreateHash(key string) (*Hash, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if h, exists := s.hashes[key]; exists {
+		return h, false
+	}
+	h := NewHash()
+	s.hashes[key] = h
+	return h, true
+}
+
+// ============================================
+// LIST METHODS
+// ============================================
+
+func (s *Shard[V]) GetList(key string) (*List, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	l, exists := s.lists[key]
+	return l, exists
+}
+
+func (s *Shard[V]) GetOrCreateList(key string) (*List, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if l, exists := s.lists[key]; exists {
+		return l, false
+	}
+	l := NewList()
+	s.lists[key] = l
+	return l, true
+}
+
+// ============================================
+// SET METHODS
+// ============================================
+
+func (s *Shard[V]) GetSet(key string) (*Set, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	l, exists := s.sets[key]
+	return l, exists
+}
+
+func (s *Shard[V]) GetOrCreateSet(key string) (*Set, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if l, exists := s.sets[key]; exists {
+		return l, false
+	}
+	l := NewSet()
+	s.sets[key] = l
+	return l, true
+}
+
+// ============================================
+// LIST METHODS
+// ============================================
+
+func (s *Shard[V]) GetSortedSet(key string) (*SortedSet, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	l, exists := s.sortedSets[key]
+	return l, exists
+}
+
+func (s *Shard[V]) GetOrCreateSortedSet(key string) (*SortedSet, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if l, exists := s.sortedSets[key]; exists {
+		return l, false
+	}
+	l := NewSortedSet()
+	s.sortedSets[key] = l
+	return l, true
 }

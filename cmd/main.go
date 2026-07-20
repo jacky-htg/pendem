@@ -79,12 +79,46 @@ func main() {
 	srv.RegisterHandler("PING", h.Ping)
 	srv.RegisterHandler("ECHO", h.Echo)
 	srv.RegisterHandler("MEMORY", h.Memory)
+	srv.RegisterHandler("POLICY", h.Policy)
+
+	// String
 	srv.RegisterHandler("GET", h.Get)
 	srv.RegisterHandler("EXISTS", h.Exists)
 	srv.RegisterHandler("SET", h.Set)
 	srv.RegisterHandler("DEL", h.Delete)
 	srv.RegisterHandler("TTL", h.TTL)
-	srv.RegisterHandler("POLICY", h.Policy)
+	srv.RegisterHandler("APPEND", h.Append)
+	srv.RegisterHandler("STRLEN", h.Strlen)
+
+	// Hash commands
+	srv.RegisterHandler("HSET", h.HSet)
+	srv.RegisterHandler("HGET", h.HGet)
+	srv.RegisterHandler("HGETALL", h.HGetAll)
+	srv.RegisterHandler("HDEL", h.HDel)
+	srv.RegisterHandler("HLEN", h.HLen)
+	srv.RegisterHandler("HEXISTS", h.HExists)
+
+	// List commands
+	srv.RegisterHandler("LPUSH", h.LPush)
+	srv.RegisterHandler("RPUSH", h.RPush)
+	srv.RegisterHandler("LPOP", h.LPop)
+	srv.RegisterHandler("RPOP", h.RPop)
+	srv.RegisterHandler("LRANGE", h.LRange)
+	srv.RegisterHandler("LLEN", h.LLen)
+
+	// Set commands
+	srv.RegisterHandler("SADD", h.SAdd)
+	srv.RegisterHandler("SREM", h.SRem)
+	srv.RegisterHandler("SMEMBERS", h.SMembers)
+	srv.RegisterHandler("SISMEMBER", h.SIsMember)
+	srv.RegisterHandler("SCARD", h.SCard)
+
+	// Sorted Set commands
+	srv.RegisterHandler("ZADD", h.ZAdd)
+	srv.RegisterHandler("ZRANGE", h.ZRange)
+	srv.RegisterHandler("ZREM", h.ZRem)
+	srv.RegisterHandler("ZCARD", h.ZCard)
+	srv.RegisterHandler("ZSCORE", h.ZScore)
 
 	go func() {
 		if err := srv.Start(); err != nil {

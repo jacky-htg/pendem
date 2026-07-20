@@ -4,12 +4,14 @@ import (
 	"hash/fnv"
 	"log"
 	"pendem/internal/config"
+	"sync"
 	"time"
 )
 
 type Cache[V any] struct {
 	shards    []*Shard[V]
 	numShards int
+	mu        sync.RWMutex
 }
 
 func NewCache[V any](cfg config.EngineConfig, logger *log.Logger) *Cache[V] {
@@ -131,4 +133,60 @@ func (c *Cache[V]) cleanupLoop() {
 			shard.CleanupExpired()
 		}
 	}
+}
+
+// ============================================
+// HASH OPERATIONS
+// ============================================
+
+func (c *Cache[V]) GetHash(key string) (*Hash, bool) {
+	shard := c.getShard(key)
+	return shard.GetHash(key)
+}
+
+func (c *Cache[V]) GetOrCreateHash(key string) (*Hash, bool) {
+	shard := c.getShard(key)
+	return shard.GetOrCreateHash(key)
+}
+
+// ============================================
+// LIST OPERATIONS
+// ============================================
+
+func (c *Cache[V]) GetList(key string) (*List, bool) {
+	shard := c.getShard(key)
+	return shard.GetList(key)
+}
+
+func (c *Cache[V]) GetOrCreateList(key string) (*List, bool) {
+	shard := c.getShard(key)
+	return shard.GetOrCreateList(key)
+}
+
+// ============================================
+// SET OPERATIONS
+// ============================================
+
+func (c *Cache[V]) GetSet(key string) (*Set, bool) {
+	shard := c.getShard(key)
+	return shard.GetSet(key)
+}
+
+func (c *Cache[V]) GetOrCreateSet(key string) (*Set, bool) {
+	shard := c.getShard(key)
+	return shard.GetOrCreateSet(key)
+}
+
+// ============================================
+// SORTED SET OPERATIONS
+// ============================================
+
+func (c *Cache[V]) GetSortedSet(key string) (*SortedSet, bool) {
+	shard := c.getShard(key)
+	return shard.GetSortedSet(key)
+}
+
+func (c *Cache[V]) GetOrCreateSortedSet(key string) (*SortedSet, bool) {
+	shard := c.getShard(key)
+	return shard.GetOrCreateSortedSet(key)
 }

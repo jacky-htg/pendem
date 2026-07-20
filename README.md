@@ -25,6 +25,11 @@ Perfect for microservices, session management, and high-throughput caching.
 | RESP Protocol | ✅ | Full Redis Serialization Protocol support |
 | TCP Server | ✅ | Concurrent connection handling with graceful shutdown |
 | In-Memory Storage | ✅ | Fast key-value storage with TTL support |
+| String Data Type | ✅ | EXISTS, GET, SET, DEL |
+| Hash Data Type | ✅ | HGET, HSET |
+| LIST Data Type | ✅ | LPUSH, RPUSH, LPOP, RPOP |
+| SET Data Type | ✅ | SADD, SREM, SMEMBERS |
+| SORTED SET Data Type | ✅ | ZADD, ZRANGE |
 | LRU Eviction | ✅ | Least Recently Used eviction policy |
 | Sharding | ✅ | 16 shards for parallel operations |
 | TTL Support | ✅ | Time-to-live with EX and PX options |
@@ -236,19 +241,16 @@ interval = 1h
 max_snapshots = 5
 ```
 
-## 📚 Commands
+## 📚 Commands Summary
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| PING | Test connection | PING → PONG |
-| EXISTS | Count Exist by key(s) | EXISTS key1 key2 → 2 |
-| GET | Get value by key | GET key → "value" |
-| SET | Set value with TTL | SET key value EX 10 → OK |
-| DEL | Delete key(s) | DEL key1 key2 → 2 |
-| TTL | Get remaining TTL | TTL key → 10 |
-| MEMORY | Server memory stats | MEMORY → JSON |
-| MEMORY USAGE | Cache memory usage | MEMORY USAGE → "12.00 KB" |
-| POLICY | Show eviction policy | POLICY → "lru (items: 5, max: 10000)" |
+| Category | Commands |
+|----------|----------|
+| Generic | PING, ECHO, MEMORY, MEMORY USAGE, POLICY |
+| String | GET, SET, DEL, TTL, APPEND, STRLEN, EXISTS |
+| Hash | HSET, HGET, HGETALL, HDEL, HLEN, HEXISTS |
+| List | LPUSH, RPUSH, LPOP, RPOP, LRANGE, LLEN |
+| Set | SADD, SREM, SMEMBERS, SISMEMBER, SCARD |
+| Sorted Set | ZADD, ZRANGE, ZREM, ZCARD, ZSCORE |
 
 ## 🧪 Testing
 
@@ -295,6 +297,7 @@ This project is licensed under the GNU GPL License - see the [LICENSE](LICENSE) 
 - ✅ LRU Eviction
 - ✅ Sharding
 - ✅ Persistence (RDB & AOF)
+- ✅ More Data Type (Data Struct: Hash, List, Set, SortedSet)
 - ⏳ Batch Operations (MGET, MSET, Pipeline)
 - ⏳ Pub/Sub
 - ⏳ Cluster Support
