@@ -37,6 +37,19 @@ func (h *Handler[V]) Ping(args []string) server.RESPValue {
 	}
 }
 
+func (h *Handler[V]) Echo(args []string) server.RESPValue {
+	if len(args) < 1 {
+		return server.RESPValue{
+			Type: server.Error,
+			Str:  "ERR wrong number of arguments for 'echo' command",
+		}
+	}
+	return server.RESPValue{
+		Type: server.BulkString,
+		Str:  args[0],
+	}
+}
+
 func (h *Handler[V]) Policy(args []string) server.RESPValue {
 	if len(args) > 0 {
 		return server.RESPValue{

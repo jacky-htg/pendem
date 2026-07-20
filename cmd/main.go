@@ -77,6 +77,7 @@ func main() {
 	srv := server.NewServerWithConfig(":"+cfg.Server.Port, log, cfg.Server)
 	h := handler.NewHandler(srv, cache, persistence)
 	srv.RegisterHandler("PING", h.Ping)
+	srv.RegisterHandler("ECHO", h.Echo)
 	srv.RegisterHandler("MEMORY", h.Memory)
 	srv.RegisterHandler("GET", h.Get)
 	srv.RegisterHandler("EXISTS", h.Exists)
