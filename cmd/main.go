@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -8,24 +9,73 @@ import (
 	"pendem/internal/config"
 	"pendem/internal/engine"
 	"pendem/internal/handler"
+	"pendem/internal/persistence"
 	"pendem/internal/server"
 	"syscall"
-	"time"
 )
 
 func main() {
-	log := log.New(os.Stdout, "[PENDEM] ", log.LstdFlags|log.Lshortfile)
-	config := config.Config{
-		Server: config.ServerConfig{
-			MaxConnections: 50_000,
-			ReadTimeout:    30 * time.Second,
-			WriteTimeout:   10 * time.Second,
-			IdleTimeout:    60 * time.Second,
-		},
-		Engine: config.DefaultConfig().Engine,
+	var configPath string
+	flag.StringVar(&configPath, "config", "", "path to config file")
+	flag.StringVar(&configPath, "c", "", "path to config file (shorthand)")
+	flag.Parse()
+
+	var path string
+
+	// Priority 1: Flag
+	if configPath != "" {
+		if found, err := config.FindConfigFile(configPath); err == nil {
+			path = found
+		}
 	}
-	srv := server.NewServerWithConfig(":6378", log, config.Server)
-	h := handler.NewHandler(srv, engine.NewCache[string](config.Engine, log))
+
+	// Priority 2: Environment
+	if path == "" {
+		if envPath := os.Getenv("PENDEM_CONFIG"); envPath != "" {
+			if found, err := config.FindConfigFile(envPath); err == nil {
+				path = found
+			}
+		}
+	}
+
+	// Priority 3: Default locations (done by FindConfigFile with empty path)
+	if path == "" {
+		if found, err := config.FindConfigFile(""); err == nil {
+			path = found
+		}
+	}
+
+	cfg, err := config.LoadConfig(path)
+	if err != nil {
+		log.Printf("Warning: Failed to load config, using defaults: %v", err)
+	}
+
+	if err := cfg.Validate(); err != nil {
+		log.Printf("⚠️ Config validation warning: %v", err)
+	}
+
+	fmt.Println("╔═══════════════════════════════════════════════════════╗")
+	fmt.Println("║                     P E N D E M                       ║")
+	fmt.Println("║              Simple Cache Server in Go                ║")
+	fmt.Println("╠═══════════════════════════════════════════════════════╣")
+	fmt.Printf("║  Address			: %-22s║\n", "0.0.0.0:6378")
+	fmt.Printf("║  Max Connection		: %-22d║\n", cfg.Server.MaxConnections)
+	fmt.Printf("║  Read Timeout			: %-22s║\n", cfg.Server.ReadTimeout)
+	fmt.Printf("║  Write Timeout		: %-22s║\n", cfg.Server.WriteTimeout)
+	fmt.Printf("║  Idle Timeout			: %-22s║\n", cfg.Server.IdleTimeout)
+	fmt.Println("╚═══════════════════════════════════════════════════════╝")
+	fmt.Println()
+
+	log := log.New(os.Stdout, "[PENDEM] ", log.LstdFlags|log.Lshortfile)
+	cache := engine.NewCache[string](cfg.Engine, log)
+	persistence := persistence.NewManager[string](log, cache, cfg.Persistence)
+	if err := persistence.Start(); err != nil {
+		log.Printf("Warning: Failed to start persistence: %v", err)
+	}
+	defer persistence.Stop()
+
+	srv := server.NewServerWithConfig(":6378", log, cfg.Server)
+	h := handler.NewHandler(srv, cache, persistence)
 	srv.RegisterHandler("PING", h.Ping)
 	srv.RegisterHandler("MEMORY", h.Memory)
 	srv.RegisterHandler("GET", h.Get)
@@ -33,18 +83,6 @@ func main() {
 	srv.RegisterHandler("DEL", h.Delete)
 	srv.RegisterHandler("TTL", h.TTL)
 	srv.RegisterHandler("POLICY", h.Policy)
-
-	fmt.Println("╔═══════════════════════════════════════════════════════╗")
-	fmt.Println("║                     P E N D E M                       ║")
-	fmt.Println("║              Simple Cache Server in Go                ║")
-	fmt.Println("╠═══════════════════════════════════════════════════════╣")
-	fmt.Printf("║  Address			: %-22s║\n", "0.0.0.0:6378")
-	fmt.Printf("║  Max Connection		: %-22d║\n", config.Server.MaxConnections)
-	fmt.Printf("║  Read Timeout			: %-22s║\n", config.Server.ReadTimeout)
-	fmt.Printf("║  Write Timeout		: %-22s║\n", config.Server.WriteTimeout)
-	fmt.Printf("║  Idle Timeout			: %-22s║\n", config.Server.IdleTimeout)
-	fmt.Println("╚═══════════════════════════════════════════════════════╝")
-	fmt.Println()
 
 	go func() {
 		if err := srv.Start(); err != nil {

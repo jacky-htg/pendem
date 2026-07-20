@@ -30,3 +30,8 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+pendem.aof
+pendem.rdb
+pendem.snapshot.json
+pendem.conf

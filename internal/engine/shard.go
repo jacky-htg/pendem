@@ -143,3 +143,29 @@ func (s *Shard[V]) CleanupExpired() {
 		return true
 	})
 }
+
+// internal/engine/shard.go
+func (s *Shard[V]) GetItems() map[string]Item[V] {
+	s.mu.RLock()
+	items := make(map[string]Item[V], s.evictor.Len())
+
+	// ✅ Iterasi cepat, ambil data
+	s.evictor.ForEach(func(key string, item *Item[V]) bool {
+		if !item.IsExpired() {
+			items[key] = *item
+		}
+		return true
+	})
+	s.mu.RUnlock()
+
+	return items
+}
+
+func (s *Shard[V]) Restore(items map[string]Item[V]) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for key, item := range items {
+		s.evictor.Add(key, &item)
+	}
+}

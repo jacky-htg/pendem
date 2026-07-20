@@ -3,25 +3,28 @@ package handler
 import (
 	"fmt"
 	"pendem/internal/engine"
+	"pendem/internal/persistence"
 	"pendem/internal/server"
 	"strconv"
 	"strings"
 	"time"
 )
 
-type Handler struct {
-	server *server.Server
-	cache  *engine.Cache[string]
+type Handler[V any] struct {
+	server         *server.Server
+	cache          *engine.Cache[string]
+	persistenceMgr *persistence.Manager[V]
 }
 
-func NewHandler(server *server.Server, cache *engine.Cache[string]) *Handler {
-	return &Handler{
-		server: server,
-		cache:  cache,
+func NewHandler[V any](server *server.Server, cache *engine.Cache[string], manager *persistence.Manager[V]) *Handler[V] {
+	return &Handler[V]{
+		server:         server,
+		cache:          cache,
+		persistenceMgr: manager,
 	}
 }
 
-func (h *Handler) Ping(args []string) server.RESPValue {
+func (h *Handler[V]) Ping(args []string) server.RESPValue {
 	if len(args) > 0 {
 		return server.RESPValue{
 			Type: server.BulkString,
@@ -34,7 +37,7 @@ func (h *Handler) Ping(args []string) server.RESPValue {
 	}
 }
 
-func (h *Handler) Policy(args []string) server.RESPValue {
+func (h *Handler[V]) Policy(args []string) server.RESPValue {
 	if len(args) > 0 {
 		return server.RESPValue{
 			Type: server.SimpleString,
@@ -52,7 +55,7 @@ func (h *Handler) Policy(args []string) server.RESPValue {
 	}
 }
 
-func (h *Handler) Memory(args []string) server.RESPValue {
+func (h *Handler[V]) Memory(args []string) server.RESPValue {
 	if len(args) > 0 && strings.ToUpper(args[0]) == "USAGE" {
 		return h.MemoryUsage(args[1:])
 	}
@@ -70,7 +73,7 @@ func (h *Handler) Memory(args []string) server.RESPValue {
 	}
 }
 
-func (h *Handler) MemoryUsage(args []string) server.RESPValue {
+func (h *Handler[V]) MemoryUsage(args []string) server.RESPValue {
 	if len(args) > 0 {
 		return server.RESPValue{
 			Type: server.SimpleString,
@@ -97,7 +100,7 @@ func (h *Handler) MemoryUsage(args []string) server.RESPValue {
 	}
 }
 
-func (h *Handler) Get(args []string) server.RESPValue {
+func (h *Handler[V]) Get(args []string) server.RESPValue {
 	if len(args) < 1 {
 		return server.RESPValue{
 			Type: server.Error,
@@ -122,7 +125,7 @@ func (h *Handler) Get(args []string) server.RESPValue {
 	}
 }
 
-func (h *Handler) Set(args []string) server.RESPValue {
+func (h *Handler[V]) Set(args []string) server.RESPValue {
 	if len(args) < 2 {
 		return server.RESPValue{
 			Type: server.Error,
@@ -149,13 +152,17 @@ func (h *Handler) Set(args []string) server.RESPValue {
 
 	h.cache.Set(key, value, ttl)
 
+	if h.persistenceMgr != nil {
+		go h.persistenceMgr.LogCommand("SET", args...)
+	}
+
 	return server.RESPValue{
 		Type: server.SimpleString,
 		Str:  "OK",
 	}
 }
 
-func (h *Handler) Delete(args []string) server.RESPValue {
+func (h *Handler[V]) Delete(args []string) server.RESPValue {
 	if len(args) < 1 {
 		return server.RESPValue{
 			Type: server.Error,
@@ -170,6 +177,10 @@ func (h *Handler) Delete(args []string) server.RESPValue {
 		}
 	}
 
+	if h.persistenceMgr != nil {
+		go h.persistenceMgr.LogCommand("DEL", args...)
+	}
+
 	return server.RESPValue{
 		Type: server.Integer,
 		Int:  int64(count),
@@ -177,7 +188,7 @@ func (h *Handler) Delete(args []string) server.RESPValue {
 }
 
 // Tambahan: TTL Command
-func (h *Handler) TTL(args []string) server.RESPValue {
+func (h *Handler[V]) TTL(args []string) server.RESPValue {
 	if len(args) < 1 {
 		return server.RESPValue{
 			Type: server.Error,

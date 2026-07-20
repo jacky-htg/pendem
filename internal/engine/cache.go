@@ -102,6 +102,21 @@ func (c *Cache[V]) MaxCapacity() int {
 	return c.shards[0].MaxCapacity()
 }
 
+func (c *Cache[V]) TotalCapacity() int {
+	if len(c.shards) == 0 {
+		return 0
+	}
+	return c.shards[0].MaxCapacity() * c.numShards
+}
+
+func (c *Cache[V]) GetShard(id int) *Shard[V] {
+	return c.shards[id]
+}
+
+func (c *Cache[V]) NumShards() int {
+	return c.numShards
+}
+
 func (c *Cache[V]) cleanupLoop() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()

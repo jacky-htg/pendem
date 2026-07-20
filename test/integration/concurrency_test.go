@@ -36,7 +36,7 @@ func setupTestServer() (*server.Server, *engine.Cache[string], string) {
 	srv := server.NewServerWithConfig(":16378", log, cfg) // Use different port
 
 	// Register handlers
-	h := handler.NewHandler(srv, cache)
+	h := handler.NewHandler[string](srv, cache, nil)
 	srv.RegisterHandler("PING", h.Ping)
 	srv.RegisterHandler("GET", h.Get)
 	srv.RegisterHandler("SET", h.Set)

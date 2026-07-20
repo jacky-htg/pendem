@@ -120,6 +120,17 @@ func (l *LRU[V]) MaxCapacity() int {
 	return l.capacity
 }
 
+func (l *LRU[V]) GetItems() map[string]Item[V] {
+	mapItems := make(map[string]Item[V], 0)
+	for key, elem := range l.items {
+		item := elem.Value.(*lruEntry[V]).value
+		if !item.IsExpired() {
+			mapItems[key] = *item
+		}
+	}
+	return mapItems
+}
+
 func (l *LRU[V]) removeOldest() {
 	elem := l.order.Back()
 	if elem != nil {

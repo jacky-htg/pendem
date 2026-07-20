@@ -21,4 +21,5 @@ type Evictor[V any] interface {
 	ForEach(fn func(key string, item *Item[V]) bool)
 
 	MaxCapacity() int
+	GetItems() map[string]Item[V]
 }
