@@ -48,9 +48,9 @@ func (c *Cache[V]) getShard(key string) *Shard[V] {
 // KEY-BASED OPERATIONS (1 shard)
 // ============================================
 
-func (c *Cache[V]) IsExist(key string) bool {
+func (c *Cache[V]) HasKey(key string) bool {
 	shard := c.getShard(key)
-	return shard.IsExist(key)
+	return shard.HasKey(key)
 }
 
 func (c *Cache[V]) Set(key string, value V, ttl time.Duration) {

@@ -129,13 +129,13 @@ func (h *Handler[V]) Exists(args []string) server.RESPValue {
 	if len(args) < 1 {
 		return server.RESPValue{
 			Type: server.Error,
-			Str:  "ERR wrong number of arguments for 'get' command",
+			Str:  "ERR wrong number of arguments for 'exists' command",
 		}
 	}
 
 	count := 0
 	for _, key := range args {
-		if h.cache.IsExist(key) {
+		if h.cache.HasKey(key) {
 			count++
 		}
 	}

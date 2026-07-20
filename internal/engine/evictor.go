@@ -7,6 +7,7 @@ type Evictor[V any] interface {
 
 	// Get retrieves an item and marks it as recently used
 	Get(key string) (*Item[V], bool)
+	Has(key string) bool
 
 	// Remove deletes an item
 	Remove(key string) bool

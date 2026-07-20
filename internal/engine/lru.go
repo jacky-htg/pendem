@@ -78,6 +78,11 @@ func (l *LRU[V]) Add(key string, value *Item[V]) {
 	l.currentMem += itemSize
 }
 
+func (l *LRU[V]) Has(key string) bool {
+	_, exists := l.items[key]
+	return exists
+}
+
 func (l *LRU[V]) Get(key string) (*Item[V], bool) {
 	if elem, exists := l.items[key]; exists {
 		// Pindahkan ke depan (most recently used)
