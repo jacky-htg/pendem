@@ -190,3 +190,33 @@ func (c *Cache[V]) GetOrCreateSortedSet(key string) (*SortedSet, bool) {
 	shard := c.getShard(key)
 	return shard.GetOrCreateSortedSet(key)
 }
+
+func (c *Cache[V]) Scan(cursor int, pattern string, count int) ([]string, int) {
+	// Cursor format: [shardIndex][offset]
+	// Misal: cursor 1005 → shard 1, offset 5
+	shardIdx := cursor / 10000
+	offset := cursor % 10000
+
+	var keys []string
+	var matched int
+
+	// Iterasi shard
+	for i := shardIdx; i < len(c.shards); i++ {
+		shard := c.shards[i]
+		shardKeys, shardOffset := shard.Scan(offset, pattern, count-matched)
+
+		keys = append(keys, shardKeys...)
+		matched += len(shardKeys)
+
+		if matched >= count {
+			// Next cursor: shard index + offset
+			nextCursor := i*10000 + shardOffset
+			return keys, nextCursor
+		}
+
+		offset = 0 // Reset untuk shard berikutnya
+	}
+
+	// Selesai semua shard
+	return keys, 0
+}

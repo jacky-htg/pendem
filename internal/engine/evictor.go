@@ -23,4 +23,5 @@ type Evictor[V any] interface {
 
 	MaxCapacity() int
 	GetItems() map[string]Item[V]
+	GetKeys() []string
 }

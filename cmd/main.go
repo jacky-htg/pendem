@@ -80,6 +80,7 @@ func main() {
 	srv.RegisterHandler("ECHO", h.Echo)
 	srv.RegisterHandler("MEMORY", h.Memory)
 	srv.RegisterHandler("POLICY", h.Policy)
+	srv.RegisterHandler("SCAN", h.Scan)
 
 	// String
 	srv.RegisterHandler("GET", h.Get)

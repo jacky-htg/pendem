@@ -271,3 +271,25 @@ func (s *Shard[V]) GetOrCreateSortedSet(key string) (*SortedSet, bool) {
 	s.sortedSets[key] = l
 	return l, true
 }
+
+func (s *Shard[V]) Scan(offset int, pattern string, limit int) ([]string, int) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var keys []string
+	matched := 0
+
+	// Dapatkan semua keys dari evictor
+	allKeys := s.evictor.GetKeys()
+
+	for i := offset; i < len(allKeys) && matched < limit; i++ {
+		key := allKeys[i]
+		if matchPattern(key, pattern) {
+			keys = append(keys, key)
+			matched++
+		}
+	}
+
+	nextOffset := offset + len(keys)
+	return keys, nextOffset
+}

@@ -136,6 +136,18 @@ func (l *LRU[V]) GetItems() map[string]Item[V] {
 	return mapItems
 }
 
+func (l *LRU[V]) GetKeys() []string {
+	keys := make([]string, 0)
+	for key, elem := range l.items {
+		item := elem.Value.(*lruEntry[V]).value
+		if !item.IsExpired() {
+			keys = append(keys, key)
+		}
+	}
+
+	return keys
+}
+
 func (l *LRU[V]) removeOldest() {
 	elem := l.order.Back()
 	if elem != nil {

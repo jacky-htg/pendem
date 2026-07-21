@@ -35,7 +35,7 @@ Perfect for microservices, session management, and high-throughput caching.
 | TTL Support | ✅ | Time-to-live with EX and PX options |
 | Batch Operations | ✅ | MGET, MSET, Pipeline |
 | Transaction | ⏳ | MULTI, EXEC, WATCH (coming soon) |
-| Persistence | ✅ | RDB & AOF |
+| Persistence | ✅ | JSON, RDB & AOF |
 | Pub/Sub | ⏳ | Publish/Subscribe messaging (coming soon) |
 | Clustering | ⏳ | Distributed cache support (coming soon) |
 | Monitoring | ⏳ | Monitor performance, system, cache, connection, etc (coming soon) |
@@ -246,7 +246,7 @@ max_snapshots = 5
 
 | Category | Commands |
 |----------|----------|
-| Generic | PING, ECHO, MEMORY, MEMORY USAGE, POLICY |
+| Generic | PING, ECHO, MEMORY, MEMORY USAGE, POLICY, SCAN |
 | String | GET, SET, DEL, TTL, APPEND, STRLEN, EXISTS |
 | Hash | HSET, HGET, HGETALL, HDEL, HLEN, HEXISTS, HKEYS, HVALS |
 | List | LPUSH, RPUSH, LPOP, RPOP, LRANGE, LLEN |
