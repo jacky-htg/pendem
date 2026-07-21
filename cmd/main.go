@@ -122,6 +122,11 @@ func main() {
 	srv.RegisterHandler("ZCARD", h.ZCard)
 	srv.RegisterHandler("ZSCORE", h.ZScore)
 
+	// Batch Operations
+	srv.RegisterHandler("MGET", h.MGet)
+	srv.RegisterHandler("MSET", h.MSet)
+	srv.RegisterHandler("MSETNX", h.MSetNX)
+
 	go func() {
 		if err := srv.Start(); err != nil {
 			log.Fatalf("Server error: %v", err)

@@ -5,16 +5,16 @@
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-**Pendem** adalah Redis-like cache server yang dibangun dari awal menggunakan Go. Nama "Pendem" berasal dari bahasa Jawa yang berarti **"menyimpan di dalam tanah"** - mencerminkan filosofi penyimpanan data yang kokoh dan aman, siap diambil dengan cepat.
+**Pendem** adalah cache server yang dibangun dari awal menggunakan Go. Nama "Pendem" berasal dari bahasa Jawa yang berarti **"menyimpan di dalam tanah"** - mencerminkan filosofi penyimpanan data yang kokoh dan aman, siap diambil dengan cepat.
 
 ## 🎯 Why Pendem?
 
-**Pendem** isn't just another Redis clone. It's built with:
+**Pendem** built with:
 
 - **Simplicity in mind** — minimal configuration, maximum performance
 - **Go-native concurrency** — goroutines and channels for efficient request handling
-- **Javanese philosophy** — data stored deep, ready to be unearthed instantly
 - **Sharded by design** — 16 shards for true parallel operations from day one
+- **Redis compatible** - using RESP Protocol, compatible with all redis client.
 
 Perfect for microservices, session management, and high-throughput caching.
 
@@ -33,7 +33,7 @@ Perfect for microservices, session management, and high-throughput caching.
 | LRU Eviction | ✅ | Least Recently Used eviction policy |
 | Sharding | ✅ | 16 shards for parallel operations |
 | TTL Support | ✅ | Time-to-live with EX and PX options |
-| Batch Operations | ⏳ | MGET, MSET, Pipeline (coming soon) |
+| Batch Operations | ✅ | MGET, MSET, Pipeline |
 | Transaction | ⏳ | MULTI, EXEC, WATCH (coming soon) |
 | Persistence | ✅ | RDB & AOF |
 | Pub/Sub | ⏳ | Publish/Subscribe messaging (coming soon) |
@@ -248,10 +248,11 @@ max_snapshots = 5
 |----------|----------|
 | Generic | PING, ECHO, MEMORY, MEMORY USAGE, POLICY |
 | String | GET, SET, DEL, TTL, APPEND, STRLEN, EXISTS |
-| Hash | HSET, HGET, HGETALL, HDEL, HLEN, HEXISTS |
+| Hash | HSET, HGET, HGETALL, HDEL, HLEN, HEXISTS, HKEYS, HVALS |
 | List | LPUSH, RPUSH, LPOP, RPOP, LRANGE, LLEN |
 | Set | SADD, SREM, SMEMBERS, SISMEMBER, SCARD |
 | Sorted Set | ZADD, ZRANGE, ZREM, ZCARD, ZSCORE |
+| Batch Operation | MGET, MSET, MSETNX |
 
 ## 🧪 Testing
 
@@ -299,7 +300,7 @@ This project is licensed under the GNU GPL License - see the [LICENSE](LICENSE) 
 - ✅ Sharding
 - ✅ Persistence (RDB & AOF)
 - ✅ More Data Type (Data Struct: Hash, List, Set, SortedSet)
-- ⏳ Batch Operations (MGET, MSET, Pipeline)
+- ✅ Batch Operations (MGET, MSET, Pipeline)
 - ⏳ Transaction Using Multi, Exec, Watch
 - ⏳ Pub/Sub
 - ⏳ Cluster Support

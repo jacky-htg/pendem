@@ -56,6 +56,11 @@ func (s *Server) RegisterHandler(cmd string, handler CommandHandler) {
 	s.handlers[strings.ToUpper(cmd)] = handler
 }
 
+func (s *Server) GetHandler(cmd string) (CommandHandler, bool) {
+	handler, exists := s.handlers[cmd]
+	return handler, exists
+}
+
 // processCommand memproses perintah dari client
 // Versi Resp
 func (s *Server) processCommand(value *RESPValue) RESPValue {
@@ -78,7 +83,7 @@ func (s *Server) processCommand(value *RESPValue) RESPValue {
 		}
 	}
 
-	handler, exists := s.handlers[cmd]
+	handler, exists := s.GetHandler(cmd)
 	if !exists {
 		return RESPValue{
 			Type: Error,
@@ -189,6 +194,25 @@ func (s *Server) handleConnection(conn net.Conn) {
 				return
 			}
 
+			// handleConnection - bagian pipeline
+			if res.respVal.Type == Array && len(res.respVal.Array) > 0 {
+				// Cek apakah ini pipeline (array of arrays)
+				// Pipeline: [ [SET key value], [GET key] ]
+				// Single command: [ SET key value ] (bukan array of arrays)
+				if res.respVal.Array[0].Type == Array {
+					// Ini pipeline!
+					responses := s.processPipeline(res.respVal.Array)
+					if s.config.WriteTimeout > 0 {
+						conn.SetWriteDeadline(time.Now().Add(s.config.WriteTimeout))
+					}
+					for _, resp := range responses {
+						conn.Write([]byte(EncodeRESP(resp)))
+					}
+					c.UpdateActivity()
+					continue
+				}
+			}
+
 			// Proses command
 			response := s.processCommand(res.respVal)
 
@@ -201,6 +225,17 @@ func (s *Server) handleConnection(conn net.Conn) {
 			c.UpdateActivity()
 		}
 	}
+}
+
+// Pipeline dengan error handling
+func (s *Server) processPipeline(commands []RESPValue) []RESPValue {
+	results := make([]RESPValue, len(commands))
+	for i, cmd := range commands {
+		// Process each command independently
+		// One error doesn't affect others
+		results[i] = s.processCommand(&cmd)
+	}
+	return results
 }
 
 // Start memulai server
