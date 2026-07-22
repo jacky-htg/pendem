@@ -17,6 +17,26 @@ type Connection struct {
 	done         chan struct{}
 	mu           sync.Mutex
 	closed       bool
+
+	// Transaction state
+	inTransaction  bool
+	queuedCommands []*RESPValue
+	watchedKeys    map[string]bool
+	dirty          bool
+}
+
+func NewConnection(conn net.Conn, idleTimeout time.Duration, logger *log.Logger) *Connection {
+	return &Connection{
+		conn:           conn,
+		remoteAddr:     conn.RemoteAddr().String(),
+		idleTimeout:    idleTimeout,
+		logger:         logger,
+		done:           make(chan struct{}),
+		inTransaction:  false,
+		queuedCommands: make([]*RESPValue, 0),
+		watchedKeys:    make(map[string]bool),
+		dirty:          false,
+	}
 }
 
 func (c *Connection) MonitorIdle() {
@@ -64,4 +84,42 @@ func (c *Connection) IsClosed() bool {
 
 func (c *Connection) UpdateActivity() {
 	atomic.StoreInt64(&c.lastActivity, time.Now().Unix())
+}
+
+// ResetTransaction clears transaction state
+func (c *Connection) ResetTransaction() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.inTransaction = false
+	c.queuedCommands = make([]*RESPValue, 0)
+	c.watchedKeys = make(map[string]bool)
+	c.dirty = false
+}
+
+// WatchKey adds a key to watch list
+func (c *Connection) WatchKey(key string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.watchedKeys[key] = true
+}
+
+// IsWatched checks if a key is being watched
+func (c *Connection) IsWatched(key string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.watchedKeys[key]
+}
+
+// MarkDirty marks transaction as dirty (watched key changed)
+func (c *Connection) MarkDirty() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.dirty = true
+}
+
+// IsDirty returns true if transaction is dirty
+func (c *Connection) IsDirty() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.dirty
 }

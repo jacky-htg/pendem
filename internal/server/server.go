@@ -24,6 +24,9 @@ type Server struct {
 	quit       chan struct{}             // Channel untuk signal shutdown
 	mu         sync.Mutex                // Untuk protect listener close
 	closed     bool                      // Flag untuk cek sudah closed
+
+	watchers  map[string][]*Connection // key → list of connections
+	watcherMu sync.RWMutex
 }
 
 // CommandHandler adalah fungsi untuk menangani perintah
@@ -39,6 +42,7 @@ func NewServer(addr string, log *log.Logger) *Server {
 		activeConn: 0,
 		quit:       make(chan struct{}),
 		closed:     false,
+		watchers:   make(map[string][]*Connection),
 	}
 
 	return s
@@ -59,183 +63,6 @@ func (s *Server) RegisterHandler(cmd string, handler CommandHandler) {
 func (s *Server) GetHandler(cmd string) (CommandHandler, bool) {
 	handler, exists := s.handlers[cmd]
 	return handler, exists
-}
-
-// processCommand memproses perintah dari client
-// Versi Resp
-func (s *Server) processCommand(value *RESPValue) RESPValue {
-
-	// Harus array (perintah)
-	if value.Type != Array || len(value.Array) < 1 {
-		return RESPValue{
-			Type: Error,
-			Str:  "ERR invalid command",
-		}
-	}
-
-	// Perintah pertama adalah command
-	cmd := strings.ToUpper(value.Array[0].Str)
-	args := make([]string, 0)
-
-	for i := 1; i < len(value.Array); i++ {
-		if value.Array[i].Type == BulkString {
-			args = append(args, value.Array[i].Str)
-		}
-	}
-
-	handler, exists := s.GetHandler(cmd)
-	if !exists {
-		return RESPValue{
-			Type: Error,
-			Str:  fmt.Sprintf("ERR unknown command '%s'", cmd),
-		}
-	}
-
-	// Eksekusi handler
-	return handler(args)
-}
-
-// handleConnection menangani satu koneksi
-func (s *Server) handleConnection(conn net.Conn) {
-	// Tambahkan ke WaitGroup untuk gracefull shutdown
-	s.wg.Add(1)
-	defer s.wg.Done()
-
-	c := &Connection{
-		conn:        conn,
-		remoteAddr:  conn.RemoteAddr().String(),
-		idleTimeout: s.config.IdleTimeout,
-		logger:      s.logger,
-		done:        make(chan struct{}),
-	}
-
-	// Pastikan connection ditutup saat function selesai
-	defer func() {
-		c.Close()
-		// Kurangi counter aktif koneksi
-		atomic.AddInt32(&s.activeConn, -1)
-		s.logger.Printf("Active connections: %d", atomic.LoadInt32(&s.activeConn))
-	}()
-
-	// Cek apakah shutdown sedang berlangsung
-	select {
-	case <-s.quit:
-		s.logger.Printf("Shutting down, rejecting new connection from %s", c.remoteAddr)
-		conn.Write([]byte("ERR server shutting down\n"))
-		return
-	default:
-	}
-
-	// Start idle monitor
-	c.UpdateActivity()
-	go c.MonitorIdle()
-
-	// Log koneksi baru
-	s.logger.Printf("New connection from %s", c.remoteAddr)
-	s.logger.Printf("Active connections: %d", atomic.LoadInt32(&s.activeConn))
-
-	// Buat parser
-	parser := NewRESPParser(conn)
-
-	// Channel untuk shutdown interrupt
-	shutdown := make(chan struct{})
-	go func() {
-		<-s.quit
-		c.Close() // Langsung close connection
-		close(shutdown)
-	}()
-
-	// Loop membaca perintah dari client
-	for {
-		if c.IsClosed() {
-			return
-		}
-
-		// Cek shutdown signal
-		select {
-		case <-s.quit:
-			s.logger.Printf("Shutting down, closing connection from %s", c.remoteAddr)
-			return
-		default:
-		}
-
-		// Set read timeout
-		if s.config.ReadTimeout > 0 {
-			conn.SetReadDeadline(time.Now().Add(s.config.ReadTimeout))
-		}
-
-		// Baca di goroutine terpisah dengan channel
-		type readResult struct {
-			respVal *RESPValue
-			err     error
-		}
-		readCh := make(chan readResult, 1)
-		go func() {
-			respVal, err := parser.Read()
-			readCh <- readResult{respVal, err}
-		}()
-
-		// Wait for read OR shutdown
-		select {
-		case <-shutdown:
-			s.logger.Printf("Shutdown interrupt during read from %s", c.remoteAddr)
-			return
-		case res := <-readCh:
-
-			if res.err != nil {
-				// EOF berarti client disconnect
-				if res.err == io.EOF {
-					s.logger.Printf("Client %s disconnected", c.remoteAddr)
-				} else if ne, ok := res.err.(net.Error); ok && ne.Timeout() {
-					s.logger.Printf("Client %s timeout", c.remoteAddr)
-				} else {
-					s.logger.Printf("Read error from %s: %v", c.remoteAddr, res.err)
-				}
-				return
-			}
-
-			// handleConnection - bagian pipeline
-			if res.respVal.Type == Array && len(res.respVal.Array) > 0 {
-				// Cek apakah ini pipeline (array of arrays)
-				// Pipeline: [ [SET key value], [GET key] ]
-				// Single command: [ SET key value ] (bukan array of arrays)
-				if res.respVal.Array[0].Type == Array {
-					// Ini pipeline!
-					responses := s.processPipeline(res.respVal.Array)
-					if s.config.WriteTimeout > 0 {
-						conn.SetWriteDeadline(time.Now().Add(s.config.WriteTimeout))
-					}
-					for _, resp := range responses {
-						conn.Write([]byte(EncodeRESP(resp)))
-					}
-					c.UpdateActivity()
-					continue
-				}
-			}
-
-			// Proses command
-			response := s.processCommand(res.respVal)
-
-			// Set write timeout
-			if s.config.WriteTimeout > 0 {
-				conn.SetWriteDeadline(time.Now().Add(s.config.WriteTimeout))
-			}
-
-			conn.Write([]byte(EncodeRESP(response)))
-			c.UpdateActivity()
-		}
-	}
-}
-
-// Pipeline dengan error handling
-func (s *Server) processPipeline(commands []RESPValue) []RESPValue {
-	results := make([]RESPValue, len(commands))
-	for i, cmd := range commands {
-		// Process each command independently
-		// One error doesn't affect others
-		results[i] = s.processCommand(&cmd)
-	}
-	return results
 }
 
 // Start memulai server
@@ -371,4 +198,196 @@ func (s *Server) PrintMemoryUsage() string {
 		sysMB,
 		m.NumGC,
 	)
+}
+
+func (s *Server) parseCmd(value *RESPValue) (string, []string) {
+	// Perintah pertama adalah command
+	cmd := strings.ToUpper(value.Array[0].Str)
+	args := make([]string, 0)
+
+	for i := 1; i < len(value.Array); i++ {
+		if value.Array[i].Type == BulkString {
+			args = append(args, value.Array[i].Str)
+		}
+	}
+	return cmd, args
+}
+
+// processCommand memproses perintah dari client
+func (s *Server) processCommand(value *RESPValue, cmd string, args []string) RESPValue {
+	if value.Type != Array || len(value.Array) < 1 {
+		return RESPValue{
+			Type: Error,
+			Str:  "ERR invalid command",
+		}
+	}
+	if len(cmd) == 0 {
+		cmd, args = s.parseCmd(value)
+	}
+
+	handler, exists := s.GetHandler(cmd)
+	if !exists {
+		return RESPValue{
+			Type: Error,
+			Str:  fmt.Sprintf("ERR unknown command '%s'", cmd),
+		}
+	}
+
+	// Check if any watched key was modified
+	if s.isWriteCommand(cmd) {
+		keys := s.extractKeys(cmd, args)
+		if len(keys) > 0 {
+			s.markWatchedKeysDirty(keys)
+		}
+	}
+
+	// Eksekusi handler
+	return handler(args)
+}
+
+func (s *Server) processCommandWithTx(c *Connection, value *RESPValue) RESPValue {
+	result, cmd, args, isTxCmd := s.handleTxCmd(c, value)
+	if isTxCmd {
+		return result
+	}
+
+	return s.processCommand(value, cmd, args)
+}
+
+// handleConnection menangani satu koneksi
+func (s *Server) handleConnection(conn net.Conn) {
+	// Tambahkan ke WaitGroup untuk gracefull shutdown
+	s.wg.Add(1)
+	defer s.wg.Done()
+
+	c := NewConnection(conn, s.config.IdleTimeout, s.logger)
+
+	// Pastikan connection ditutup saat function selesai
+	defer func() {
+		c.Close()
+		s.cleanupWatchers(c)
+		// Kurangi counter aktif koneksi
+		atomic.AddInt32(&s.activeConn, -1)
+		s.logger.Printf("Active connections: %d", atomic.LoadInt32(&s.activeConn))
+	}()
+
+	// Cek apakah shutdown sedang berlangsung
+	select {
+	case <-s.quit:
+		s.logger.Printf("Shutting down, rejecting new connection from %s", c.remoteAddr)
+		conn.Write([]byte("ERR server shutting down\n"))
+		return
+	default:
+	}
+
+	// Start idle monitor
+	c.UpdateActivity()
+	go c.MonitorIdle()
+
+	// Log koneksi baru
+	s.logger.Printf("New connection from %s", c.remoteAddr)
+	s.logger.Printf("Active connections: %d", atomic.LoadInt32(&s.activeConn))
+
+	// Buat parser
+	parser := NewRESPParser(conn)
+
+	// Channel untuk shutdown interrupt
+	shutdown := make(chan struct{})
+	go func() {
+		<-s.quit
+		c.Close() // Langsung close connection
+		close(shutdown)
+	}()
+
+	// Loop membaca perintah dari client
+	for {
+		if c.IsClosed() {
+			return
+		}
+
+		// Cek shutdown signal
+		select {
+		case <-s.quit:
+			s.logger.Printf("Shutting down, closing connection from %s", c.remoteAddr)
+			return
+		default:
+		}
+
+		// Set read timeout
+		if s.config.ReadTimeout > 0 {
+			conn.SetReadDeadline(time.Now().Add(s.config.ReadTimeout))
+		}
+
+		// Baca di goroutine terpisah dengan channel
+		type readResult struct {
+			respVal *RESPValue
+			err     error
+		}
+		readCh := make(chan readResult, 1)
+		go func() {
+			respVal, err := parser.Read()
+			readCh <- readResult{respVal, err}
+		}()
+
+		// Wait for read OR shutdown
+		select {
+		case <-shutdown:
+			s.logger.Printf("Shutdown interrupt during read from %s", c.remoteAddr)
+			return
+		case res := <-readCh:
+
+			if res.err != nil {
+				// EOF berarti client disconnect
+				if res.err == io.EOF {
+					s.logger.Printf("Client %s disconnected", c.remoteAddr)
+				} else if ne, ok := res.err.(net.Error); ok && ne.Timeout() {
+					s.logger.Printf("Client %s timeout", c.remoteAddr)
+				} else {
+					s.logger.Printf("Read error from %s: %v", c.remoteAddr, res.err)
+				}
+				return
+			}
+
+			// handleConnection - bagian pipeline
+			if res.respVal.Type == Array && len(res.respVal.Array) > 0 {
+				// Cek apakah ini pipeline (array of arrays)
+				// Pipeline: [ [SET key value], [GET key] ]
+				// Single command: [ SET key value ] (bukan array of arrays)
+				if res.respVal.Array[0].Type == Array {
+					// Ini pipeline!
+					responses := s.processPipeline(c, res.respVal.Array)
+					if s.config.WriteTimeout > 0 {
+						conn.SetWriteDeadline(time.Now().Add(s.config.WriteTimeout))
+					}
+					for _, resp := range responses {
+						conn.Write([]byte(EncodeRESP(resp)))
+					}
+					c.UpdateActivity()
+					continue
+				}
+			}
+
+			// Proses command
+			response := s.processCommandWithTx(c, res.respVal)
+
+			// Set write timeout
+			if s.config.WriteTimeout > 0 {
+				conn.SetWriteDeadline(time.Now().Add(s.config.WriteTimeout))
+			}
+
+			conn.Write([]byte(EncodeRESP(response)))
+			c.UpdateActivity()
+		}
+	}
+}
+
+// Pipeline dengan error handling
+func (s *Server) processPipeline(c *Connection, commands []RESPValue) []RESPValue {
+	results := make([]RESPValue, len(commands))
+	for i, cmd := range commands {
+		// Process each command independently
+		// One error doesn't affect others
+		results[i] = s.processCommand(&cmd, "", nil)
+	}
+	return results
 }

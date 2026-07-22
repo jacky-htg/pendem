@@ -59,7 +59,7 @@ func DefaultConfig() Config {
 	return Config{
 		Server: ServerConfig{
 			Port:           "6379",
-			MaxConnections: 1_0000,
+			MaxConnections: 50_000,
 			ReadTimeout:    2 * time.Minute,
 			WriteTimeout:   30 * time.Second,
 			IdleTimeout:    10 * time.Minute,

@@ -34,11 +34,11 @@ Perfect for microservices, session management, and high-throughput caching.
 | Sharding | ✅ | 16 shards for parallel operations |
 | TTL Support | ✅ | Time-to-live with EX and PX options |
 | Batch Operations | ✅ | MGET, MSET, Pipeline |
-| Transaction | ⏳ | MULTI, EXEC, WATCH (coming soon) |
+| Transaction | ✅ | MULTI, EXEC, WATCH |
 | Persistence | ✅ | JSON, RDB & AOF |
 | Pub/Sub | ⏳ | Publish/Subscribe messaging (coming soon) |
-| Clustering | ⏳ | Distributed cache support (coming soon) |
 | Monitoring | ⏳ | Monitor performance, system, cache, connection, etc (coming soon) |
+| Clustering | ⏳ | Distributed cache support (coming soon) |
 
 ## 🚀 Quick Start
 
@@ -172,7 +172,7 @@ func DefaultConfig() Config {
 	return Config{
 		Server: ServerConfig{
 			Port:           "6379",
-			MaxConnections: 1_0000,
+			MaxConnections: 50_000,
 			ReadTimeout:    2 * time.Minute,
 			WriteTimeout:   30 * time.Second,
 			IdleTimeout:    10 * time.Minute,
@@ -252,7 +252,8 @@ max_snapshots = 5
 | List | LPUSH, RPUSH, LPOP, RPOP, LRANGE, LLEN |
 | Set | SADD, SREM, SMEMBERS, SISMEMBER, SCARD |
 | Sorted Set | ZADD, ZRANGE, ZREM, ZCARD, ZSCORE |
-| Batch Operation | MGET, MSET, MSETNX |
+| Batch Operation | MGET, MSET, MSETNX, Pipeline |
+| Transaction | WATCH, UNWATCH, MULTI, EXEC, DISCARD |
 
 ## 🧪 Testing
 
@@ -297,16 +298,16 @@ This project is licensed under the GNU GPL License - see the [LICENSE](LICENSE) 
 - ✅ RESP Protocol
 - ✅ In-Memory Storage
 - ✅ LRU Eviction
+- ⏳ LFU Eviction
+- ⏳ TTL Eviction
 - ✅ Sharding
 - ✅ Persistence (RDB & AOF)
 - ✅ More Data Type (Data Struct: Hash, List, Set, SortedSet)
 - ✅ Batch Operations (MGET, MSET, Pipeline)
-- ⏳ Transaction Using Multi, Exec, Watch
+- ✅ Transaction Using Multi, Exec, Watch
 - ⏳ Pub/Sub
-- ⏳ Cluster Support
 - ⏳ Monitoring
-- ⏳ LFU Eviction
-- ⏳ TTL Eviction
+- ⏳ Cluster Support
 
 🏺 Pendem - Cache Server yang Kokoh Seperti Tanah
 
