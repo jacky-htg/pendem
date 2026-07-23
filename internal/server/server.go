@@ -214,7 +214,7 @@ func (s *Server) parseCmd(value *RESPValue) (string, []string) {
 }
 
 // processCommand memproses perintah dari client
-func (s *Server) processCommand(c *Connection, value *RESPValue, cmd string, args []string) RESPValue {
+func (s *Server) processCommand(value *RESPValue, cmd string, args []string) RESPValue {
 	if value.Type != Array || len(value.Array) < 1 {
 		return RESPValue{
 			Type: Error,
@@ -225,7 +225,7 @@ func (s *Server) processCommand(c *Connection, value *RESPValue, cmd string, arg
 		cmd, args = s.parseCmd(value)
 	}
 
-	if cmd == "AUTH" {
+	/*if cmd == "AUTH" {
 		if s.config.RequirePass == "" {
 			return RESPValue{Type: Error, Str: "ERR Client sent AUTH, but no password is set"}
 		}
@@ -245,7 +245,7 @@ func (s *Server) processCommand(c *Connection, value *RESPValue, cmd string, arg
 
 	if s.config.RequirePass != "" && !c.IsAuthenticated() {
 		return RESPValue{Type: Error, Str: "NOAUTH Authentication required."}
-	}
+	}*/
 
 	handler, exists := s.GetHandler(cmd)
 	if !exists {
@@ -304,7 +304,7 @@ func (s *Server) processCommandWithTx(c *Connection, value *RESPValue) RESPValue
 		return result
 	}
 
-	return s.processCommand(c, value, cmd, args)
+	return s.processCommand(value, cmd, args)
 }
 
 // handleConnection menangani satu koneksi
