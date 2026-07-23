@@ -63,6 +63,12 @@ func main() {
 	fmt.Printf("║  Read Timeout			: %-22s║\n", cfg.Server.ReadTimeout)
 	fmt.Printf("║  Write Timeout		: %-22s║\n", cfg.Server.WriteTimeout)
 	fmt.Printf("║  Idle Timeout			: %-22s║\n", cfg.Server.IdleTimeout)
+	// auth information
+	authStatus := "Disabled"
+	if cfg.Server.RequirePass != "" {
+		authStatus = "Enabled"
+	}
+	fmt.Printf("║  Authentication		: %-22s║\n", authStatus)
 	fmt.Println("╚═══════════════════════════════════════════════════════╝")
 	fmt.Println()
 

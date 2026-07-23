@@ -97,7 +97,7 @@ func (s *Server) handleExec(conn *Connection, args []string) RESPValue {
 	results := make([]RESPValue, 0, len(commands))
 	for _, cmd := range commands {
 		// Execute command (without recursion)
-		result := s.processCommand(cmd, "", nil)
+		result := s.processCommand(conn, cmd, "", nil)
 		results = append(results, result)
 
 		// If error occurs, continue (no rollback in Redis)
