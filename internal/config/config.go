@@ -12,6 +12,7 @@ type ServerConfig struct {
 	ReadTimeout    time.Duration
 	WriteTimeout   time.Duration
 	IdleTimeout    time.Duration // Timeout koneksi idle
+	RequirePass    string        // authentication password
 }
 
 type EngineConfig struct {
@@ -117,6 +118,9 @@ func LoadConfig(path string) (Config, error) {
 	}
 	if v, ok := parser.GetDuration("server", "idle_timeout"); ok {
 		cfg.Server.IdleTimeout = v
+	}
+	if v, ok := parser.GetString("server", "requirepass"); ok {
+		cfg.Server.RequirePass = v
 	}
 
 	// [engine] section

@@ -246,6 +246,37 @@ func (s *Server) processCommand(value *RESPValue, cmd string, args []string) RES
 }
 
 func (s *Server) processCommandWithTx(c *Connection, value *RESPValue) RESPValue {
+	if value.Type != Array || len(value.Array) < 1 {
+		return RESPValue{
+			Type: Error,
+			Str:  "ERR invalid command",
+		}
+	}
+
+	cmd, args := s.parseCmd(value)
+
+	if cmd == "AUTH" {
+		if s.config.RequirePass == "" {
+			return RESPValue{Type: Error, Str: "ERR Client sent AUTH, but no password is set"}
+		}
+		if len(args) != 1 {
+			return RESPValue{Type: Error, Str: "ERR wrong number of arguments for 'auth' command"}
+		}
+		if args[0] == s.config.RequirePass {
+			c.SetAuthenticated(true)
+			return RESPValue{Type: SimpleString, Str: "OK"}
+		}
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+			c.Close()
+		}()
+		return RESPValue{Type: Error, Str: "ERR invalid password"}
+	}
+
+	if s.config.RequirePass != "" && !c.IsAuthenticated() {
+		return RESPValue{Type: Error, Str: "NOAUTH Authentication required."}
+	}
+
 	result, cmd, args, isTxCmd := s.handleTxCmd(c, value)
 	if isTxCmd {
 		return result
@@ -387,7 +418,7 @@ func (s *Server) processPipeline(c *Connection, commands []RESPValue) []RESPValu
 	for i, cmd := range commands {
 		// Process each command independently
 		// One error doesn't affect others
-		results[i] = s.processCommand(&cmd, "", nil)
+		results[i] = s.processCommandWithTx(c, &cmd)
 	}
 	return results
 }

@@ -18,6 +18,9 @@ type Connection struct {
 	mu           sync.Mutex
 	closed       bool
 
+	// authentication
+	authenticated bool
+
 	// Transaction state
 	inTransaction  bool
 	queuedCommands []*RESPValue
@@ -84,6 +87,19 @@ func (c *Connection) IsClosed() bool {
 
 func (c *Connection) UpdateActivity() {
 	atomic.StoreInt64(&c.lastActivity, time.Now().Unix())
+}
+
+// set authentication
+func (c *Connection) SetAuthenticated(auth bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.authenticated = auth
+}
+
+func (c *Connection) IsAuthenticated() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.authenticated
 }
 
 // ResetTransaction clears transaction state
